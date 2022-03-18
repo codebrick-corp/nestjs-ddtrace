@@ -4,7 +4,7 @@
   "description": "NestJS Datadog Trace Library",
   "main": "lib/index.js",
   "author": "",
-  "private": true,
+  "private": false,
   "license": "UNLICENSED",
   "scripts": {
     "prebuild": "rimraf lib",
@@ -18,11 +18,13 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand"
   },
   "dependencies": {
     "dd-trace": "^2.3.1"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^8.4.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^8.0.0",
