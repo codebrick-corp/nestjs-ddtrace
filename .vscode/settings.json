@@ -1,12 +1,39 @@
 {
-    "files.exclude": {
-        "**/.git": true,
-        "**/.svn": true,
-        "**/.hg": true,
-        "**/CVS": true,
-        "**/.DS_Store": true,
-        "**/Thumbs.db": true,
-        "**/node_modules/": true,
-        "**/lib": true,
-    }
+	"editor.renderWhitespace": "all",
+	"editor.formatOnPaste": true,
+	"editor.insertSpaces": false,
+	"editor.renderControlCharacters": true,
+	"editor.formatOnSave": true,
+	"files.trimTrailingWhitespace": true,
+	"files.trimFinalNewlines": true,
+	"files.insertFinalNewline": true,
+	"files.exclude": {
+		"**/.git": true,
+		"**/.DS_Store": true,
+		"**/node_modules": true,
+		"**/*.d.ts": true,
+		"lib": true
+	},
+	"search.exclude": {
+		"**/node_modules": true,
+		"dist": true,
+	},
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"npm.exclude": "**/extensions/**",
+	"npm.packageManager": "npm",
+	"emmet.excludeLanguages": [],
+	"typescript.preferences.importModuleSpecifier": "non-relative",
+	"typescript.preferences.quoteStyle": "single",
+	"[plaintext]": {
+		"files.insertFinalNewline": false
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "vscode.typescript-language-features",
+		"editor.formatOnSave": true
+	},
+	"[javascript]": {
+		"editor.defaultFormatter": "vscode.typescript-language-features",
+		"editor.formatOnSave": true
+	},
+	"json.maxItemsComputed": 5000
 }
