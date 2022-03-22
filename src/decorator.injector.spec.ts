@@ -1,11 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Controller, Get, Injectable } from '@nestjs/common';
+import { Controller, Get, Injectable, UsePipes } from '@nestjs/common';
+import { EventPattern, Transport } from '@nestjs/microservices';
 import { DatadogTraceModule } from './datadog-trace.module';
 import { Span } from './span.decorator';
 import { Constants } from './constants';
 import { tracer, Span as TraceSpan, Scope } from 'dd-trace';
 import * as request from 'supertest';
-import { PATH_METADATA } from '@nestjs/common/constants';
+import { PATH_METADATA, PIPES_METADATA } from '@nestjs/common/constants';
+import { PATTERN_METADATA, PATTERN_HANDLER_METADATA, TRANSPORT_METADATA } from '@nestjs/microservices/constants';
+import { PatternHandler } from '@nestjs/microservices/enums/pattern-handler.enum';
 
 describe('DecoratorInjector', () => {
   it('should work with sync function', async () => {
@@ -275,5 +278,39 @@ describe('DecoratorInjector', () => {
 
     startSpanSpy.mockClear();
     scopeSpy.mockClear();
+  });
+
+  it('should be usable with other annotations', async () => {
+    const pipe = new (function transform() { });
+
+    // given
+    @Controller()
+    @Span()
+    class HelloController {
+      @EventPattern('pattern1', Transport.KAFKA)
+      @UsePipes(pipe, pipe)
+      hi() { return 0; }
+      @EventPattern('pattern2', Transport.KAFKA)
+      @UsePipes(pipe, pipe)
+      hello() { return 1; }
+    }
+
+    await Test.createTestingModule({
+      imports: [DatadogTraceModule.forRoot()],
+      controllers: [HelloController]
+    }).compile();
+
+    // then
+    expect(Reflect.getMetadata(Constants.SPAN_METADATA_ACTIVE, HelloController.prototype.hi)).toBe(1);
+    expect(Reflect.getMetadata(PATTERN_METADATA, HelloController.prototype.hi)).toBe('pattern1');
+    expect(Reflect.getMetadata(PATTERN_HANDLER_METADATA, HelloController.prototype.hi)).toBe(PatternHandler.EVENT);
+    expect(Reflect.getMetadata(TRANSPORT_METADATA, HelloController.prototype.hi)).toBe(Transport.KAFKA);
+    expect(Reflect.getMetadata(PIPES_METADATA, HelloController.prototype.hi)).toEqual([pipe, pipe]);
+
+    expect(Reflect.getMetadata(Constants.SPAN_METADATA_ACTIVE, HelloController.prototype.hello)).toBe(1);
+    expect(Reflect.getMetadata(PATTERN_METADATA, HelloController.prototype.hello)).toBe('pattern2');
+    expect(Reflect.getMetadata(PATTERN_HANDLER_METADATA, HelloController.prototype.hello)).toBe(PatternHandler.EVENT);
+    expect(Reflect.getMetadata(TRANSPORT_METADATA, HelloController.prototype.hello)).toBe(Transport.KAFKA);
+    expect(Reflect.getMetadata(PIPES_METADATA, HelloController.prototype.hello)).toEqual([pipe, pipe]);
   });
 });
