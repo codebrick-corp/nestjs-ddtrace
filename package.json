@@ -27,11 +27,9 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand"
   },
-  "dependencies": {
-    "dd-trace": "^2.3.1"
-  },
   "peerDependencies": {
-    "@nestjs/common": "^8.4.0"
+    "@nestjs/common": "^8.4.0",
+    "dd-trace": "^2.4.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^8.0.0",

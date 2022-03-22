@@ -44,18 +44,19 @@ npm i nestjs-ddtrace --save
     bootstrap();
     ```
 
-3. Add `LoggerModule` to `AppModule`:
+3. Add *LoggerModule* and *DatadogModule* to *AppModule*:
 
     ```ts
     import { Module } from '@nestjs/common';
     import { LoggerModule } from 'nestjs-pino';
+    import { DatadogTraceModule } from 'nestjs-ddtrace';
 
     @Module({
       imports: [LoggerModule.forRoot({
         pinoHttp: {
           level: process.env.ENV !== 'prod' ? 'trace' : 'info'
         }
-      })],
+      }), DatadogTraceModule.forRoot()],
     })
     export class AppModule {}
     ```
