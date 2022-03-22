@@ -2,10 +2,17 @@
   "name": "nestjs-ddtrace",
   "version": "0.0.2",
   "description": "NestJS Datadog Trace Library",
+  "keywords": [
+    "nestjs",
+    "datadog",
+    "ddtrace",
+    "dd-trace",
+    "nest.js"
+  ],
   "main": "lib/index.js",
   "author": "",
   "private": false,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "prebuild": "rimraf lib",
     "build": "nest build",

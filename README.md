@@ -22,7 +22,7 @@ npm i nestjs-ddtrace --save
 
     ```
 
-2. Import the tracing file
+2. Import the tracing file:
 
     ```ts
     import './tracing';
@@ -44,9 +44,25 @@ npm i nestjs-ddtrace --save
     bootstrap();
     ```
 
+3. Add `LoggerModule` to `AppModule`:
+
+    ```ts
+    import { Module } from '@nestjs/common';
+    import { LoggerModule } from 'nestjs-pino';
+
+    @Module({
+      imports: [LoggerModule.forRoot({
+        pinoHttp: {
+          level: process.env.ENV !== 'prod' ? 'trace' : 'info'
+        }
+      })],
+    })
+    export class AppModule {}
+    ```
+
 ## Span Decorator
 
-If you need, you can define a custom Tracing Span for a method. It works async or sync. Span takes its name from the parameter; but by default, it is the same as the method's name.
+If you need, you can define a custom Tracing Span for a method or class. It works async or sync. Span takes its name from the parameter; but by default, it is the same as the method's name.
 
 ```ts
 import { DatadogTraceModule } from 'nestjs-ddtrace';
@@ -58,7 +74,7 @@ import { DatadogTraceModule } from 'nestjs-ddtrace';
 export class AppModule {}
 ```
 
-## Tracing Service
+### Tracing Service
 
 In case you need to access native span methods for special logics in the method block:
 
@@ -93,10 +109,27 @@ export class BookService {
 }
 ```
 
+```ts
+import { Span } from 'nestjs-ddtrace';
+
+@Injectable()
+@Span()
+export class BookService {
+  async getBooks() { ... }
+  async deleteBook(id: string) { ... }
+}
+
+@Controller()
+@Span()
+export class HelloController {
+  @Get('/books')
+  getBooks() { ... }
+
+  @Delete('/books/:id')
+  deleteBooks() { ... }
+}
+```
+
 ## Miscellaneous
 
-Inspired by the [nestjs-otel](https://github.com/pragmaticivan/nestjs-otel) repository.
-
-## License
-
-N/A
+Inspired by the [nestjs-otel](https://github.com/pragmaticivan/nestjs-otel) and [nestjs-opentelemetry](https://github.com/MetinSeylan/Nestjs-OpenTelemetry#readme) repository.
