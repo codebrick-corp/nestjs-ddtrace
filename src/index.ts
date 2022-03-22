@@ -1,3 +1,3 @@
-export * from './trace/trace.service';
-export * from './trace/span.decorator';
+export * from './trace.service';
+export * from './span.decorator';
 export * from './datadog-trace.module';
