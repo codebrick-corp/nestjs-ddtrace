@@ -1,6 +1,6 @@
 {
   "name": "nestjs-ddtrace",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "description": "NestJS Datadog Trace Library",
   "keywords": [
     "nestjs",
