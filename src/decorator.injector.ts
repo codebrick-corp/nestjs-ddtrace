@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
-import { Constants } from './Constants';
+import { Constants } from './constants';
 import { MetadataScanner, ModulesContainer } from '@nestjs/core';
 import { Controller, Injectable as InjectableInterface } from '@nestjs/common/interfaces';
 import { tracer, Span } from 'dd-trace';
