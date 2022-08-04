@@ -1,4 +1,4 @@
-import { DynamicModule, Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { DynamicModule, Module } from '@nestjs/common';
 import { FactoryProvider } from '@nestjs/common/interfaces/modules/provider.interface';
 import { TraceService } from './trace.service';
 import { DecoratorInjector } from './decorator.injector';

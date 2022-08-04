@@ -302,13 +302,13 @@ describe('DecoratorInjector', () => {
 
     // then
     expect(Reflect.getMetadata(Constants.SPAN_METADATA_ACTIVE, HelloController.prototype.hi)).toBe(1);
-    expect(Reflect.getMetadata(PATTERN_METADATA, HelloController.prototype.hi)).toBe('pattern1');
+    expect(Reflect.getMetadata(PATTERN_METADATA, HelloController.prototype.hi)).toEqual(['pattern1']);
     expect(Reflect.getMetadata(PATTERN_HANDLER_METADATA, HelloController.prototype.hi)).toBe(PatternHandler.EVENT);
     expect(Reflect.getMetadata(TRANSPORT_METADATA, HelloController.prototype.hi)).toBe(Transport.KAFKA);
     expect(Reflect.getMetadata(PIPES_METADATA, HelloController.prototype.hi)).toEqual([pipe, pipe]);
 
     expect(Reflect.getMetadata(Constants.SPAN_METADATA_ACTIVE, HelloController.prototype.hello)).toBe(1);
-    expect(Reflect.getMetadata(PATTERN_METADATA, HelloController.prototype.hello)).toBe('pattern2');
+    expect(Reflect.getMetadata(PATTERN_METADATA, HelloController.prototype.hello)).toEqual(['pattern2']);
     expect(Reflect.getMetadata(PATTERN_HANDLER_METADATA, HelloController.prototype.hello)).toBe(PatternHandler.EVENT);
     expect(Reflect.getMetadata(TRANSPORT_METADATA, HelloController.prototype.hello)).toBe(Transport.KAFKA);
     expect(Reflect.getMetadata(PIPES_METADATA, HelloController.prototype.hello)).toEqual([pipe, pipe]);
