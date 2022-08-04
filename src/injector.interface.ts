@@ -1,3 +1,6 @@
 export interface Injector {
-  inject(): void;
+  inject(options: {
+    controllers?: boolean,
+    providers?: boolean
+  }): void;
 }

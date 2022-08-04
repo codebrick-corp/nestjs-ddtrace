@@ -32,14 +32,15 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand"
   },
   "peerDependencies": {
-    "@nestjs/core": "^9.0.0",
     "@nestjs/common": "^9.0.0",
+    "@nestjs/core": "^9.0.0",
     "dd-trace": "^2.12.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.0.0",
-    "@nestjs/core": "^9.0.0",
     "@nestjs/common": "^9.0.0",
+    "@nestjs/core": "^9.0.0",
+    "@nestjs/microservices": "^9.0.0",
     "@nestjs/schematics": "^9.0.0",
     "@nestjs/testing": "^9.0.0",
     "@types/jest": "28.1.4",

@@ -13,9 +13,9 @@ export class DecoratorInjector implements Injector {
 
   constructor(private readonly modulesContainer: ModulesContainer) { }
 
-  public inject() {
-    this.injectProviders();
-    this.injectControllers();
+  public inject(options: { controllers?: boolean, providers?: boolean }) {
+    this.injectProviders(options.providers);
+    this.injectControllers(options.controllers);
   }
 
   /**
@@ -58,10 +58,13 @@ export class DecoratorInjector implements Injector {
   /**
    * Find providers with span annotation and wrap method.
    */
-  private injectProviders() {
+  private injectProviders(injectAll: boolean) {
     const providers = this.getProviders();
 
     for (const provider of providers) {
+      if (injectAll) {
+        Reflect.defineMetadata(Constants.SPAN_METADATA, 1, provider.metatype);
+      }
       const isProviderDecorated = this.isDecorated(provider.metatype);
       const methodNames = this.metadataScanner.getAllFilteredMethodNames(provider.metatype.prototype);
 
@@ -82,10 +85,13 @@ export class DecoratorInjector implements Injector {
   /**
    * Find controllers with span annotation and wrap method.
    */
-  private injectControllers() {
+  private injectControllers(injectAll: boolean) {
     const controllers = this.getControllers();
 
     for (const controller of controllers) {
+      if (injectAll) {
+        Reflect.defineMetadata(Constants.SPAN_METADATA, 1, controller.metatype);
+      }
       const isControllerDecorated = this.isDecorated(controller.metatype);
       const methodNames = this.metadataScanner.getAllFilteredMethodNames(controller.metatype.prototype);
 
