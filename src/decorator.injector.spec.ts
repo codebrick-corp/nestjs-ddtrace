@@ -249,7 +249,6 @@ describe('DecoratorInjector', () => {
     const app = module.createNestApplication();
     await app.init();
 
-    const helloController = module.get<HelloController>(HelloController);
     const mockSpan = { finish: jest.fn() as any } as TraceSpan;
     const startSpanSpy = jest.spyOn(tracer, 'startSpan').mockReturnValue(mockSpan);
     const scope = {
@@ -312,5 +311,115 @@ describe('DecoratorInjector', () => {
     expect(Reflect.getMetadata(PATTERN_HANDLER_METADATA, HelloController.prototype.hello)).toBe(PatternHandler.EVENT);
     expect(Reflect.getMetadata(TRANSPORT_METADATA, HelloController.prototype.hello)).toBe(Transport.KAFKA);
     expect(Reflect.getMetadata(PIPES_METADATA, HelloController.prototype.hello)).toEqual([pipe, pipe]);
+  });
+
+  it('should work with all controller if options.controllers is enabled', async () => {
+    // given
+    @Controller()
+    class HelloController {
+      @Get('/hi')
+      hi() { return 0; }
+      @Get('/hello')
+      hello() { return 1; }
+    }
+
+    @Controller('/foo')
+    class WorldController {
+      @Get('/bar')
+      bar() { return 'bar'; }
+    }
+
+    const module: TestingModule = await Test.createTestingModule({
+      imports: [DatadogTraceModule.forRoot({ controllers: true })],
+      controllers: [HelloController, WorldController]
+    }).compile();
+    const app = module.createNestApplication();
+    await app.init();
+
+    const mockSpan = { finish: jest.fn() as any } as TraceSpan;
+    const startSpanSpy = jest.spyOn(tracer, 'startSpan').mockReturnValue(mockSpan);
+    const scope = {
+      active: (jest.fn(() => null)) as any,
+      activate: jest.fn((span: TraceSpan, fn: ((...args: any[]) => any)): any => {
+        return fn();
+      }) as any,
+    } as Scope;
+    const scopeSpy = jest.spyOn(tracer, 'scope').mockImplementation(() => scope);
+
+    // when
+    await request(app.getHttpServer()).get('/hi').send().expect(200);
+    await request(app.getHttpServer()).get('/hello').send().expect(200);
+    await request(app.getHttpServer()).get('/foo/bar').send().expect(200);
+
+    // then
+    expect(Reflect.getMetadata(Constants.SPAN_METADATA_ACTIVE, HelloController.prototype.hi)).toBe(1);
+    expect(Reflect.getMetadata(Constants.SPAN_METADATA_ACTIVE, HelloController.prototype.hello)).toBe(1);
+    expect(Reflect.getMetadata(Constants.SPAN_METADATA_ACTIVE, WorldController.prototype.bar)).toBe(1);
+    expect(Reflect.getMetadata(PATH_METADATA, HelloController.prototype.hi)).toBe('/hi');
+    expect(Reflect.getMetadata(PATH_METADATA, HelloController.prototype.hello)).toBe('/hello');
+    expect(Reflect.getMetadata(PATH_METADATA, WorldController.prototype.bar)).toBe('/bar');
+
+    expect(tracer.startSpan).toHaveBeenCalledWith('HelloController.hi', { childOf: null });
+    expect(tracer.startSpan).toHaveBeenCalledWith('HelloController.hello', { childOf: null });
+    expect(tracer.startSpan).toHaveBeenCalledWith('WorldController.bar', { childOf: null });
+    expect(tracer.scope().active).toHaveBeenCalledTimes(3);
+    expect(tracer.scope().activate).toHaveBeenCalledTimes(3);
+    expect(mockSpan.finish).toHaveBeenCalledTimes(3);
+
+    startSpanSpy.mockClear();
+    scopeSpy.mockClear();
+  });
+
+  it('should work with all methods in provider if options.providers is enabled', async () => {
+    // given
+    @Injectable()
+    class HelloService {
+      hi() { return 0; }
+      hello() { return 1; }
+    }
+
+    @Injectable()
+    class WorldService {
+      foo() { return 2; }
+    }
+
+    const module: TestingModule = await Test.createTestingModule({
+      imports: [DatadogTraceModule.forRoot({ providers: true })],
+      providers: [HelloService, WorldService],
+    }).compile();
+
+    const helloService = module.get<HelloService>(HelloService);
+    const worldService = module.get<WorldService>(WorldService);
+    const mockSpan = { finish: jest.fn() as any } as TraceSpan;
+    const startSpanSpy = jest.spyOn(tracer, 'startSpan').mockReturnValue(mockSpan);
+    const scope = {
+      active: (jest.fn(() => null)) as any,
+      activate: jest.fn((span: TraceSpan, fn: ((...args: any[]) => any)): any => {
+        return fn();
+      }) as any,
+    } as Scope;
+    const scopeSpy = jest.spyOn(tracer, 'scope').mockImplementation(() => scope);
+
+    // when
+    const result1 = helloService.hi();
+    const result2 = helloService.hello();
+    const result3 = worldService.foo();
+
+    // then
+    expect(result1).toBe(0);
+    expect(result2).toBe(1);
+    expect(result3).toBe(2);
+    expect(Reflect.getMetadata(Constants.SPAN_METADATA_ACTIVE, HelloService.prototype.hi)).toBe(1);
+    expect(Reflect.getMetadata(Constants.SPAN_METADATA_ACTIVE, HelloService.prototype.hello)).toBe(1);
+    expect(Reflect.getMetadata(Constants.SPAN_METADATA_ACTIVE, WorldService.prototype.foo)).toBe(1);
+    expect(tracer.startSpan).toHaveBeenCalledWith('HelloService.hi', { childOf: null });
+    expect(tracer.startSpan).toHaveBeenCalledWith('HelloService.hello', { childOf: null });
+    expect(tracer.startSpan).toHaveBeenCalledWith('WorldService.foo', { childOf: null });
+    expect(tracer.scope().active).toHaveBeenCalledTimes(3);
+    expect(tracer.scope().activate).toHaveBeenCalledTimes(3);
+    expect(mockSpan.finish).toHaveBeenCalledTimes(3);
+
+    startSpanSpy.mockClear();
+    scopeSpy.mockClear();
   });
 });
