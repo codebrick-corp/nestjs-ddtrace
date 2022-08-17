@@ -34,7 +34,7 @@
   "peerDependencies": {
     "@nestjs/common": "^9.0.0",
     "@nestjs/core": "^9.0.0",
-    "dd-trace": "^2.12.1"
+    "dd-trace": "^3.0.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.0.0",
