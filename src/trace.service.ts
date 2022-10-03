@@ -7,7 +7,7 @@ export class TraceService {
     return tracer;
   }
 
-  public getActiveSpan(): Span {
+  public getActiveSpan(): Span | null {
     return tracer.scope().active();
   }
 }
