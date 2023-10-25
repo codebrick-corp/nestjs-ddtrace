@@ -4,19 +4,11 @@ import { TraceService } from './trace.service';
 import { DecoratorInjector } from './decorator.injector';
 import { Injector } from 'src/injector.interface';
 import { Constants } from './constants';
+import { DatadogTraceModuleOptions } from './datadog-trace-module-options.interface';
 
 @Module({})
 export class DatadogTraceModule {
-  static forRoot(options: {
-    /**
-     * if true, automatically add a span to all controllers.
-     */
-    controllers?: boolean,
-    /**
-     * * if true, automatically add a span to all providers.
-     */
-    providers?: boolean
-  } = {}): DynamicModule {
+  static forRoot(options: DatadogTraceModuleOptions = {}): DynamicModule {
     return {
       global: true,
       module: DatadogTraceModule,
@@ -25,10 +17,7 @@ export class DatadogTraceModule {
     }
   }
 
-  private static buildInjectors(options: {
-    controllers?: boolean,
-    providers?: boolean
-  }): FactoryProvider {
+  private static buildInjectors(options: DatadogTraceModuleOptions): FactoryProvider {
     return {
       provide: Constants.TRACE_INJECTORS,
       useFactory: async (...injectors: Injector[]) => {

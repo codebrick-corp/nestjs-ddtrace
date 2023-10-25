@@ -5,6 +5,7 @@ import { MetadataScanner, ModulesContainer } from '@nestjs/core';
 import { Controller, Injectable as InjectableInterface } from '@nestjs/common/interfaces';
 import tracer, { Span } from 'dd-trace';
 import { Injector } from './injector.interface';
+import { InjectorOptions } from 'src/injector-options.interface';
 
 @Injectable()
 export class DecoratorInjector implements Injector {
@@ -13,9 +14,9 @@ export class DecoratorInjector implements Injector {
 
   constructor(private readonly modulesContainer: ModulesContainer) { }
 
-  public inject(options: { controllers?: boolean, providers?: boolean }) {
-    this.injectProviders(options.providers);
-    this.injectControllers(options.controllers);
+  public inject(options: InjectorOptions) {
+    this.injectProviders(options.providers, new Set(options.excludeProviders));
+    this.injectControllers(options.controllers, new Set(options.excludeControllers));
   }
 
   /**
@@ -25,6 +26,15 @@ export class DecoratorInjector implements Injector {
    */
   private isDecorated(prototype): boolean {
     return Reflect.hasMetadata(Constants.SPAN_METADATA, prototype);
+  }
+
+  /**
+   * Returns whether the prototype is annotated with @NoSpan or not.
+   * @param prototype
+   * @returns
+   */
+  private isExcluded(prototype): boolean {
+    return Reflect.hasMetadata(Constants.NO_SPAN_METADATA, prototype);
   }
 
   /**
@@ -58,11 +68,18 @@ export class DecoratorInjector implements Injector {
   /**
    * Find providers with span annotation and wrap method.
    */
-  private injectProviders(injectAll: boolean) {
+  private injectProviders(injectAll: boolean, exclude: Set<string>) {
     const providers = this.getProviders();
 
     for (const provider of providers) {
-      if (injectAll) {
+      // If no-span annotation is attached to class
+      // it and its methods are all excluded
+      if (this.isExcluded(provider.metatype)) {
+        continue;
+      }
+
+      const isExcludedFromInjectAll = exclude.has(provider.name)
+      if (injectAll && !isExcludedFromInjectAll) {
         Reflect.defineMetadata(Constants.SPAN_METADATA, 1, provider.metatype);
       }
       const isProviderDecorated = this.isDecorated(provider.metatype);
@@ -71,8 +88,13 @@ export class DecoratorInjector implements Injector {
       for (const methodName of methodNames) {
         const method = provider.metatype.prototype[methodName];
 
+        // Allready applied or method has been excluded so skip
+        if (this.isAffected(method) || this.isExcluded(method)) {
+          continue;
+        }
+
         // If span annotation is attached to class, @Span is applied to all methods.
-        if ((isProviderDecorated && !this.isAffected(method)) || (this.isDecorated(method) && !this.isAffected(method))) {
+        if ((isProviderDecorated) || (this.isDecorated(method))) {
           const spanName = this.getSpanName(method) || `${provider.name}.${methodName}`;
           provider.metatype.prototype[methodName] = this.wrap(method, spanName);
 
@@ -85,11 +107,19 @@ export class DecoratorInjector implements Injector {
   /**
    * Find controllers with span annotation and wrap method.
    */
-  private injectControllers(injectAll: boolean) {
+  private injectControllers(injectAll: boolean, exclude: Set<string>) {
     const controllers = this.getControllers();
 
     for (const controller of controllers) {
-      if (injectAll) {
+      // If no-span annotation is attached to class
+      // it and its methods are all excluded
+      if (this.isExcluded(controller.metatype)) {
+        continue;
+      }
+
+      // Excluded from the injectAll option
+      const isExcludedFromInjectAll = exclude.has(controller.name)
+      if (injectAll && !isExcludedFromInjectAll) {
         Reflect.defineMetadata(Constants.SPAN_METADATA, 1, controller.metatype);
       }
       const isControllerDecorated = this.isDecorated(controller.metatype);
@@ -98,8 +128,13 @@ export class DecoratorInjector implements Injector {
       for (const methodName of methodNames) {
         const method = controller.metatype.prototype[methodName];
 
+        // Allready applied or method has been excluded so skip
+        if (this.isAffected(method) || this.isExcluded(method)) {
+          continue;
+        }
+
         // If span annotation is attached to class, @Span is applied to all methods.
-        if ((isControllerDecorated && !this.isAffected(method)) || (this.isDecorated(method) && !this.isAffected(method))) {
+        if ((isControllerDecorated) || (this.isDecorated(method))) {
           const spanName = this.getSpanName(method) || `${controller.name}.${methodName}`;
           controller.metatype.prototype[methodName] = this.wrap(method, spanName);
 
