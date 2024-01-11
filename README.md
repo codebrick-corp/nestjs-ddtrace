@@ -8,7 +8,7 @@ npm i nestjs-ddtrace --save
 
 ## Setup
 
-1. Create tracing file (tracting.ts):
+1. Create tracing file (tracing.ts):
 
     ```ts
     import tracer from 'dd-trace';
