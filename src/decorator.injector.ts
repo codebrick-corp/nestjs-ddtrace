@@ -58,10 +58,13 @@ export class DecoratorInjector implements Injector {
   /**
    * Find providers with span annotation and wrap method.
    */
-  private injectProviders(injectAll: boolean) {
+  private injectProviders(injectAll: boolean, ignoreProviders: string) {
     const providers = this.getProviders();
 
     for (const provider of providers) {
+      if (ignoreProviders.includes(provider.name)) {
+        continue;
+      }
       if (injectAll) {
         Reflect.defineMetadata(Constants.SPAN_METADATA, 1, provider.metatype);
       }

@@ -15,7 +15,8 @@ export class DatadogTraceModule {
     /**
      * * if true, automatically add a span to all providers.
      */
-    providers?: boolean
+    providers?: boolean,
+    ignoreProviders?: string[]
   } = {}): DynamicModule {
     return {
       global: true,
