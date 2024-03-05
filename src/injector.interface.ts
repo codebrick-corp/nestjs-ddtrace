@@ -1,6 +1,5 @@
+import { InjectorOptions } from './injector-options.interface';
+
 export interface Injector {
-  inject(options: {
-    controllers?: boolean,
-    providers?: boolean
-  }): void;
+  inject(options: InjectorOptions): void;
 }

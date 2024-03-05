@@ -131,6 +131,73 @@ export class HelloController {
 }
 ```
 
+## No Span Decorator
+
+If you need to explicitly exclude a method or class from having a custom tracing Span then
+you can explicitly exclude it.
+
+```ts
+import { NoSpan, Span } from 'nestjs-ddtrace';
+
+@Injectable()
+@Span()
+export class BookService {
+  async getBooks() { ... }
+  @NoSpan()
+  async deleteBook(id: string) { ... }
+}
+
+@Controller()
+@NoSpan()
+export class HelloController {
+  @Get('/books')
+  getBooks() { ... }
+
+  @Delete('/books/:id')
+  deleteBooks() { ... }
+}
+```
+
+## Custom tracing spans for all controllers and providers
+
+Custom tracing spans can be enabled for all controllers
+and providers using the `controllers` and `providers` options.
+
+```ts
+import { DatadogTraceModule } from 'nestjs-ddtrace';
+
+@Module({
+  imports: [DatadogTraceModule.forRoot({
+      controllers: true,
+      providers: true,
+    })],
+})
+
+export class AppModule {}
+```
+
+Controllers and providers can be excluded by including their name in
+either the `excludeControllers` or `excludeProviders` options.
+
+This may be useful for:
+
+- having a single place to specify what should be excluded
+- excluding controllers and providers you do not own so using the `@NoSpan` decorator is not an option.
+
+```ts
+import { DatadogTraceModule } from 'nestjs-ddtrace';
+
+@Module({
+  imports: [DatadogTraceModule.forRoot({
+      controllers: true,
+      providers: true,
+      excludeProviders: ['TraceService'],
+    })],
+})
+
+export class AppModule {}
+```
+
 ## Miscellaneous
 
 Inspired by the [nestjs-otel](https://github.com/pragmaticivan/nestjs-otel) and [nestjs-opentelemetry](https://github.com/MetinSeylan/Nestjs-OpenTelemetry#readme) repository.
