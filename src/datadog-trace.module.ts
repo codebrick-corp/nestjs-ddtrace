@@ -12,12 +12,18 @@ export class DatadogTraceModule {
     return {
       global: true,
       module: DatadogTraceModule,
-      providers: [TraceService, DecoratorInjector, this.buildInjectors(options)],
-      exports: [TraceService]
-    }
+      providers: [
+        TraceService,
+        DecoratorInjector,
+        this.buildInjectors(options),
+      ],
+      exports: [TraceService],
+    };
   }
 
-  private static buildInjectors(options: DatadogTraceModuleOptions): FactoryProvider {
+  private static buildInjectors(
+    options: DatadogTraceModuleOptions,
+  ): FactoryProvider {
     return {
       provide: Constants.TRACE_INJECTORS,
       useFactory: async (...injectors: Injector[]) => {
@@ -25,7 +31,7 @@ export class DatadogTraceModule {
           if (injector.inject) await injector.inject(options);
         }
       },
-      inject: [DecoratorInjector]
-    }
+      inject: [DecoratorInjector],
+    };
   }
 }

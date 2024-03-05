@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import { Constants } from './constants';
 import { MetadataScanner, ModulesContainer } from '@nestjs/core';
-import { Controller, Injectable as InjectableInterface } from '@nestjs/common/interfaces';
+import {
+  Controller,
+  Injectable as InjectableInterface,
+} from '@nestjs/common/interfaces';
 import tracer, { Span } from 'dd-trace';
 import { Injector } from './injector.interface';
 import { InjectorOptions } from 'src/injector-options.interface';
@@ -12,11 +15,15 @@ export class DecoratorInjector implements Injector {
   private readonly metadataScanner: MetadataScanner = new MetadataScanner();
   private readonly logger = new Logger();
 
+  // eslint-disable-next-line prettier/prettier
   constructor(private readonly modulesContainer: ModulesContainer) { }
 
   public inject(options: InjectorOptions) {
     this.injectProviders(options.providers, new Set(options.excludeProviders));
-    this.injectControllers(options.controllers, new Set(options.excludeControllers));
+    this.injectControllers(
+      options.controllers,
+      new Set(options.excludeControllers),
+    );
   }
 
   /**
@@ -78,12 +85,14 @@ export class DecoratorInjector implements Injector {
         continue;
       }
 
-      const isExcludedFromInjectAll = exclude.has(provider.name)
+      const isExcludedFromInjectAll = exclude.has(provider.name);
       if (injectAll && !isExcludedFromInjectAll) {
         Reflect.defineMetadata(Constants.SPAN_METADATA, 1, provider.metatype);
       }
       const isProviderDecorated = this.isDecorated(provider.metatype);
-      const methodNames = this.metadataScanner.getAllFilteredMethodNames(provider.metatype.prototype);
+      const methodNames = this.metadataScanner.getAllFilteredMethodNames(
+        provider.metatype.prototype,
+      );
 
       for (const methodName of methodNames) {
         const method = provider.metatype.prototype[methodName];
@@ -94,11 +103,15 @@ export class DecoratorInjector implements Injector {
         }
 
         // If span annotation is attached to class, @Span is applied to all methods.
-        if ((isProviderDecorated) || (this.isDecorated(method))) {
-          const spanName = this.getSpanName(method) || `${provider.name}.${methodName}`;
+        if (isProviderDecorated || this.isDecorated(method)) {
+          const spanName =
+            this.getSpanName(method) || `${provider.name}.${methodName}`;
           provider.metatype.prototype[methodName] = this.wrap(method, spanName);
 
-          this.logger.log(`Mapped ${provider.name}.${methodName}`, this.constructor.name);
+          this.logger.log(
+            `Mapped ${provider.name}.${methodName}`,
+            this.constructor.name,
+          );
         }
       }
     }
@@ -118,12 +131,14 @@ export class DecoratorInjector implements Injector {
       }
 
       // Excluded from the injectAll option
-      const isExcludedFromInjectAll = exclude.has(controller.name)
+      const isExcludedFromInjectAll = exclude.has(controller.name);
       if (injectAll && !isExcludedFromInjectAll) {
         Reflect.defineMetadata(Constants.SPAN_METADATA, 1, controller.metatype);
       }
       const isControllerDecorated = this.isDecorated(controller.metatype);
-      const methodNames = this.metadataScanner.getAllFilteredMethodNames(controller.metatype.prototype);
+      const methodNames = this.metadataScanner.getAllFilteredMethodNames(
+        controller.metatype.prototype,
+      );
 
       for (const methodName of methodNames) {
         const method = controller.metatype.prototype[methodName];
@@ -134,14 +149,20 @@ export class DecoratorInjector implements Injector {
         }
 
         // If span annotation is attached to class, @Span is applied to all methods.
-        if ((isControllerDecorated) || (this.isDecorated(method))) {
-          const spanName = this.getSpanName(method) || `${controller.name}.${methodName}`;
-          controller.metatype.prototype[methodName] = this.wrap(method, spanName);
+        if (isControllerDecorated || this.isDecorated(method)) {
+          const spanName =
+            this.getSpanName(method) || `${controller.name}.${methodName}`;
+          controller.metatype.prototype[methodName] = this.wrap(
+            method,
+            spanName,
+          );
 
-          this.logger.log(`Mapped ${controller.name}.${methodName}`, this.constructor.name);
+          this.logger.log(
+            `Mapped ${controller.name}.${methodName}`,
+            this.constructor.name,
+          );
         }
       }
-
     }
   }
 
@@ -162,7 +183,7 @@ export class DecoratorInjector implements Injector {
           if (prototype.constructor.name === 'AsyncFunction') {
             return prototype
               .apply(this, args)
-              .catch(error => {
+              .catch((error) => {
                 DecoratorInjector.recordException(error, span);
               })
               .finally(() => span.finish());
@@ -177,7 +198,7 @@ export class DecoratorInjector implements Injector {
             }
           }
         });
-      }
+      },
     }[prototype.name];
 
     // Reflect.defineMetadata(Constants.SPAN_METADATA, spanName, method);
