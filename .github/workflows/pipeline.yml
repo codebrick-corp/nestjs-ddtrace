@@ -1,0 +1,70 @@
+name: Publish Package
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+        # with:
+        #   ref: ${{ github.head_ref }}
+        #   fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      - name: Update package version and create Git tag
+        run: |
+          VERSION=$(echo ${{ github.event.release.tag_name }} | sed 's/^v//')
+          npm version $VERSION --no-git-tag-version
+          git add package.json
+          git commit -m "chore(release): bump version to $VERSION"
+          git tag -a $VERSION -m "chore(release): tag version $VERSION"
+
+      - name: Push Git tag
+        run: git push origin ${{ github.event.release.tag_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # - name: Push changes
+      #   uses: ad-m/github-push-action@master
+      #   with:
+      #     tags: true
+      #     branch: ${{ github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Run tests and collect coverage
+        run: npm run test:cov
+
+      # - name: Upload coverage reports to Codecov
+      #   uses: codecov/codecov-action@v4.0.1
+      #   with:
+      #     token: ${{ secrets.CODECOV_TOKEN }}
+      #     slug: wokim/nestjs-ddtrace
+      #     file: ./coverage/lcov.info
+      #     flags: unittests # Optional
+
+      - name: Publish to npm
+        # run: npm publish
+        # env:
+        #   NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+        uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{secrets.NPM_TOKEN}}
