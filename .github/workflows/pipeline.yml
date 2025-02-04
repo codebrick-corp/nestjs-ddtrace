@@ -20,7 +20,7 @@ jobs:
       - name: Update package version
         run: |
           VERSION=$(echo ${{ github.event.release.tag_name }} | sed 's/^v//')
-          npm version $VERSION --no-git-tag-version
+          npm version $VERSION --no-git-tag-version || true
 
       - name: Install dependencies
         run: npm install
