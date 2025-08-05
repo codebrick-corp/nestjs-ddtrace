@@ -9,10 +9,7 @@ import {
 import tracer, { Span } from 'dd-trace';
 import { Injector } from './injector.interface';
 import { InjectorOptions } from 'src/injector-options.interface';
-import {
-  ExceptionFilter,
-  ExceptionFilterResult,
-} from './exception-filter.types';
+import { ExceptionFilter } from './exception-filter.types';
 
 @Injectable()
 export class DecoratorInjector implements Injector {

@@ -15,11 +15,3 @@ export interface ExceptionFilterContext {
   readonly spanName: string;
   readonly methodName: string;
 }
-
-/**
- * Result of exception filter evaluation
- */
-export interface ExceptionFilterResult {
-  readonly shouldRecord: boolean;
-  readonly filterError?: Error;
-}
