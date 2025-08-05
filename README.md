@@ -218,7 +218,7 @@ import { DatadogTraceModule } from 'nestjs-ddtrace';
         if (error && typeof error === 'object' && 'status' in error) {
           return error.status !== 404;
         }
-        
+
         // Record all other exceptions
         return true;
       }
@@ -244,20 +244,20 @@ import { DatadogTraceModule } from 'nestjs-ddtrace';
             return false; // Don't record 4xx errors
           }
         }
-        
+
         // Skip validation errors in user service methods
-        if (spanName.includes('UserService') && 
-            error instanceof Error && 
+        if (spanName.includes('UserService') &&
+            error instanceof Error &&
             error.name === 'ValidationError') {
           return false;
         }
-        
+
         // Skip expected business logic errors
-        if (error instanceof Error && 
+        if (error instanceof Error &&
             error.message.includes('EXPECTED_')) {
           return false;
         }
-        
+
         // Record everything else
         return true;
       }
@@ -265,16 +265,6 @@ import { DatadogTraceModule } from 'nestjs-ddtrace';
 })
 export class AppModule {}
 ```
-
-### Exception Filter Use Cases
-
-- **Skip client errors**: Don't record 4xx HTTP errors that are client-side issues
-- **Filter validation errors**: Exclude expected validation failures
-- **Service-specific filtering**: Apply different rules based on the service/method name
-- **Business logic errors**: Skip recoverable errors that are part of normal flow
-- **Rate limiting**: Avoid recording rate limit exceeded errors
-
-**Note**: If the exception filter function throws an error, the original exception will be recorded as a fail-safe measure, and the filter error will be logged for debugging.
 
 ## Miscellaneous
 
