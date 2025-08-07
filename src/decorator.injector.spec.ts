@@ -124,6 +124,68 @@ describe('DecoratorInjector', () => {
     scopeSpy.mockClear();
   });
 
+  it('should work with non-async promise function', async () => {
+    let resolve;
+
+    const promise = new Promise<number>((_resolve) => {
+      resolve = _resolve;
+    });
+    // given
+    @Injectable()
+    class HelloService {
+      @Span('hello')
+      hi() {
+        return promise;
+      }
+    }
+
+    const module: TestingModule = await Test.createTestingModule({
+      imports: [DatadogTraceModule.forRoot()],
+      providers: [HelloService],
+    }).compile();
+
+    const helloService = module.get<HelloService>(HelloService);
+    const mockSpan = { finish: jest.fn() as any } as TraceSpan;
+    const startSpanSpy = jest
+      .spyOn(tracer, 'startSpan')
+      .mockReturnValue(mockSpan);
+    const scope = {
+      active: jest.fn(() => null) as any,
+      activate: jest.fn((span: TraceSpan, fn: (...args: any[]) => any): any => {
+        return fn();
+      }) as any,
+    } as Scope;
+    const scopeSpy = jest
+      .spyOn(tracer, 'scope')
+      .mockImplementation(() => scope);
+
+    // when
+    const resultPromise = helloService.hi();
+    // The span should not be finished before the promise resolves
+    expect(mockSpan.finish).not.toHaveBeenCalled();
+    resolve(0);
+    const result = await resultPromise;
+
+    // then
+    expect(result).toBe(0);
+    expect(
+      Reflect.getMetadata(Constants.SPAN_METADATA, HelloService.prototype.hi),
+    ).toBe('hello');
+    expect(
+      Reflect.getMetadata(
+        Constants.SPAN_METADATA_ACTIVE,
+        HelloService.prototype.hi,
+      ),
+    ).toBe(1);
+    expect(tracer.startSpan).toHaveBeenCalledWith('hello', { childOf: null });
+    expect(tracer.scope().active).toHaveBeenCalled();
+    expect(tracer.scope().activate).toHaveBeenCalled();
+    expect(mockSpan.finish).toHaveBeenCalled();
+
+    startSpanSpy.mockClear();
+    scopeSpy.mockClear();
+  });
+
   it('should record exception with sync function', async () => {
     // given
     @Injectable()
