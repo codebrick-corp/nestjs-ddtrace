@@ -198,6 +198,25 @@ import { DatadogTraceModule } from 'nestjs-ddtrace';
 export class AppModule {}
 ```
 
+## Async loading of options
+```ts
+import { DatadogTraceModule } from 'nestjs-ddtrace';
+
+@Module({
+  imports: [
+    DatadogTraceModule.forRootAsync({
+      imports: [CustomModule],
+      injects: [CustonService],
+      useFactory: async (customService: CustomService) => {
+        return await customService.getOptions();
+      }
+    })
+  ],
+})
+
+export class AppModule {}
+```
+
 ## Miscellaneous
 
 Inspired by the [nestjs-otel](https://github.com/pragmaticivan/nestjs-otel) and [nestjs-opentelemetry](https://github.com/MetinSeylan/Nestjs-OpenTelemetry#readme) repository.
