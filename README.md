@@ -198,6 +198,25 @@ import { DatadogTraceModule } from 'nestjs-ddtrace';
 export class AppModule {}
 ```
 
+## Async loading of options
+```ts
+import { DatadogTraceModule } from 'nestjs-ddtrace';
+
+@Module({
+  imports: [
+    DatadogTraceModule.forRootAsync({
+      imports: [CustomModule],
+      injects: [CustonService],
+      useFactory: async (customService: CustomService) => {
+        return await customService.getOptions();
+      }
+    })
+  ],
+})
+
+export class AppModule {}
+```
+
 ## Exception Filtering
 
 You can filter which exceptions are recorded in spans using the `exceptionFilter` option. This is useful for excluding recoverable errors, expected exceptions, or specific error types from your traces.
@@ -263,6 +282,7 @@ import { DatadogTraceModule } from 'nestjs-ddtrace';
       }
     })],
 })
+
 export class AppModule {}
 ```
 
