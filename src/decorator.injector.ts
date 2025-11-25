@@ -9,6 +9,7 @@ import {
 import tracer, { Span } from 'dd-trace';
 import { Injector } from './injector.interface';
 import { InjectorOptions } from 'src/injector-options.interface';
+import { ExceptionFilter } from './exception-filter.types';
 
 @Injectable()
 export class DecoratorInjector implements Injector {
@@ -16,13 +17,18 @@ export class DecoratorInjector implements Injector {
   private readonly logger = new Logger();
 
   // eslint-disable-next-line prettier/prettier
-  constructor(private readonly modulesContainer: ModulesContainer) { }
+  constructor(private readonly modulesContainer: ModulesContainer) {}
 
   public inject(options: InjectorOptions) {
-    this.injectProviders(options.providers, new Set(options.excludeProviders));
+    this.injectProviders(
+      options.providers,
+      new Set(options.excludeProviders),
+      options.exceptionFilter,
+    );
     this.injectControllers(
       options.controllers,
       new Set(options.excludeControllers),
+      options.exceptionFilter,
     );
   }
 
@@ -64,18 +70,34 @@ export class DecoratorInjector implements Injector {
 
   /**
    * Tag the error that occurred in span.
-   * @param error
-   * @param span
+   * @param error - The error that occurred (can be any type)
+   * @param span - The Datadog span to tag
+   * @param filter - Optional exception filter
+   * @param spanName - The span name
+   * @param methodName - The method name
    */
-  private static recordException(error, span: Span) {
-    span.setTag('error', error);
+  private static recordException(
+    error: unknown,
+    span: Span,
+    spanName: string,
+    methodName: string,
+    filter?: ExceptionFilter,
+  ): never {
+    if (!filter || filter(error, spanName, methodName)) {
+      span.setTag('error', error);
+    }
+
     throw error;
   }
 
   /**
    * Find providers with span annotation and wrap method.
    */
-  private injectProviders(injectAll: boolean, exclude: Set<string>) {
+  private injectProviders(
+    injectAll: boolean,
+    exclude: Set<string>,
+    exceptionFilter?: ExceptionFilter,
+  ) {
     const providers = this.getProviders();
 
     for (const provider of providers) {
@@ -106,7 +128,12 @@ export class DecoratorInjector implements Injector {
         if (isProviderDecorated || this.isDecorated(method)) {
           const spanName =
             this.getSpanName(method) || `${provider.name}.${methodName}`;
-          provider.metatype.prototype[methodName] = this.wrap(method, spanName);
+          provider.metatype.prototype[methodName] = this.wrap(
+            method,
+            spanName,
+            exceptionFilter,
+            methodName,
+          );
 
           this.logger.log(
             `Mapped ${provider.name}.${methodName}`,
@@ -120,7 +147,11 @@ export class DecoratorInjector implements Injector {
   /**
    * Find controllers with span annotation and wrap method.
    */
-  private injectControllers(injectAll: boolean, exclude: Set<string>) {
+  private injectControllers(
+    injectAll: boolean,
+    exclude: Set<string>,
+    exceptionFilter?: ExceptionFilter,
+  ) {
     const controllers = this.getControllers();
 
     for (const controller of controllers) {
@@ -155,6 +186,8 @@ export class DecoratorInjector implements Injector {
           controller.metatype.prototype[methodName] = this.wrap(
             method,
             spanName,
+            exceptionFilter,
+            methodName,
           );
 
           this.logger.log(
@@ -170,9 +203,16 @@ export class DecoratorInjector implements Injector {
    * Wrap the method
    * @param prototype
    * @param spanName
+   * @param exceptionFilter
+   * @param methodName
    * @returns
    */
-  private wrap(prototype: Record<any, any>, spanName: string) {
+  private wrap(
+    prototype: Record<string, any>,
+    spanName: string,
+    exceptionFilter?: ExceptionFilter,
+    methodName?: string,
+  ) {
     const method = {
       // To keep function.name property
       [prototype.name]: function (...args: any[]) {
@@ -184,7 +224,13 @@ export class DecoratorInjector implements Injector {
             return prototype
               .apply(this, args)
               .catch((error) => {
-                DecoratorInjector.recordException(error, span);
+                DecoratorInjector.recordException(
+                  error,
+                  span,
+                  spanName,
+                  methodName,
+                  exceptionFilter,
+                );
               })
               .finally(() => span.finish());
           } else {
@@ -194,7 +240,13 @@ export class DecoratorInjector implements Injector {
               if (result && typeof result.then === 'function') {
                 return result
                   .catch((error) => {
-                    DecoratorInjector.recordException(error, span);
+                    DecoratorInjector.recordException(
+                      error,
+                      span,
+                      spanName,
+                      methodName,
+                      exceptionFilter,
+                    );
                   })
                   .finally(() => span.finish());
               }
@@ -202,7 +254,13 @@ export class DecoratorInjector implements Injector {
               span.finish();
               return result;
             } catch (error) {
-              DecoratorInjector.recordException(error, span);
+              DecoratorInjector.recordException(
+                error,
+                span,
+                spanName,
+                methodName,
+                exceptionFilter,
+              );
               span.finish();
             }
           }

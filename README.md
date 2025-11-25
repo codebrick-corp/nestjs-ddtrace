@@ -217,6 +217,75 @@ import { DatadogTraceModule } from 'nestjs-ddtrace';
 export class AppModule {}
 ```
 
+## Exception Filtering
+
+You can filter which exceptions are recorded in spans using the `exceptionFilter` option. This is useful for excluding recoverable errors, expected exceptions, or specific error types from your traces.
+
+The filter function receives the error, span name, and method name, and should return `true` to record the exception or `false` to skip it.
+
+### Basic Exception Filtering
+
+```ts
+import { DatadogTraceModule } from 'nestjs-ddtrace';
+
+@Module({
+  imports: [DatadogTraceModule.forRoot({
+      controllers: true,
+      providers: true,
+      exceptionFilter: (error, spanName, methodName) => {
+        // Skip recording 404 errors
+        if (error && typeof error === 'object' && 'status' in error) {
+          return error.status !== 404;
+        }
+
+        // Record all other exceptions
+        return true;
+      }
+    })],
+})
+export class AppModule {}
+```
+
+### Advanced Exception Filtering
+
+```ts
+import { DatadogTraceModule } from 'nestjs-ddtrace';
+
+@Module({
+  imports: [DatadogTraceModule.forRoot({
+      controllers: true,
+      providers: true,
+      exceptionFilter: (error, spanName, methodName) => {
+        // Skip client errors (4xx) but record server errors (5xx)
+        if (error && typeof error === 'object' && 'status' in error) {
+          const status = (error as any).status;
+          if (status >= 400 && status < 500) {
+            return false; // Don't record 4xx errors
+          }
+        }
+
+        // Skip validation errors in user service methods
+        if (spanName.includes('UserService') &&
+            error instanceof Error &&
+            error.name === 'ValidationError') {
+          return false;
+        }
+
+        // Skip expected business logic errors
+        if (error instanceof Error &&
+            error.message.includes('EXPECTED_')) {
+          return false;
+        }
+
+        // Record everything else
+        return true;
+      }
+    })],
+})
+
+export class AppModule {}
+```
+
 ## Miscellaneous
 
 Inspired by the [nestjs-otel](https://github.com/pragmaticivan/nestjs-otel) and [nestjs-opentelemetry](https://github.com/MetinSeylan/Nestjs-OpenTelemetry#readme) repository.
