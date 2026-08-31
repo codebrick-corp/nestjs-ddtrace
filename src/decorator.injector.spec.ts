@@ -186,13 +186,15 @@ describe('DecoratorInjector', () => {
     scopeSpy.mockClear();
   });
 
-  it('should record exception with sync function', async () => {
+  it('should record and finish a span when a sync function throws', async () => {
     // given
+    const error = new Error('hello');
+
     @Injectable()
     class HelloService {
       @Span('hello')
       hi() {
-        throw new Error('hello');
+        throw error;
       }
     }
 
@@ -220,9 +222,7 @@ describe('DecoratorInjector', () => {
       .mockImplementation(() => scope);
 
     // when
-    expect(() => {
-      helloService.hi();
-    }).toThrowError('hello');
+    expect(() => helloService.hi()).toThrow(error);
 
     // then
     expect(
@@ -237,22 +237,22 @@ describe('DecoratorInjector', () => {
     expect(tracer.startSpan).toHaveBeenCalledWith('hello', { childOf: null });
     expect(tracer.scope().active).toHaveBeenCalled();
     expect(tracer.scope().activate).toHaveBeenCalled();
-    expect(mockSpan.finish).toHaveBeenCalled();
-    expect(mockSpan.setTag).toHaveBeenCalledWith('error', new Error('hello'));
+    expect(mockSpan.setTag).toHaveBeenCalledWith('error', error);
+    expect(mockSpan.finish).toHaveBeenCalledTimes(1);
 
     startSpanSpy.mockClear();
     scopeSpy.mockClear();
   });
 
-  it('should record exception with async function', async () => {
+  it('should record and finish a span when an async function rejects', async () => {
     // given
+    const error = new Error('hello');
+
     @Injectable()
     class HelloService {
       @Span('hello')
       async hi() {
-        return new Promise((_resolve, reject) => {
-          setTimeout(() => reject(new Error('hello')), 100);
-        });
+        throw error;
       }
     }
 
@@ -280,7 +280,7 @@ describe('DecoratorInjector', () => {
       .mockImplementation(() => scope);
 
     // when
-    await expect(helloService.hi()).rejects.toEqual(new Error('hello'));
+    await expect(helloService.hi()).rejects.toBe(error);
 
     // then
     expect(
@@ -295,8 +295,8 @@ describe('DecoratorInjector', () => {
     expect(tracer.startSpan).toHaveBeenCalledWith('hello', { childOf: null });
     expect(tracer.scope().active).toHaveBeenCalled();
     expect(tracer.scope().activate).toHaveBeenCalled();
-    expect(mockSpan.finish).toHaveBeenCalled();
-    expect(mockSpan.setTag).toHaveBeenCalledWith('error', new Error('hello'));
+    expect(mockSpan.setTag).toHaveBeenCalledWith('error', error);
+    expect(mockSpan.finish).toHaveBeenCalledTimes(1);
 
     startSpanSpy.mockClear();
     scopeSpy.mockClear();

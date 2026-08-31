@@ -69,7 +69,6 @@ export class DecoratorInjector implements Injector {
    */
   private static recordException(error, span: Span) {
     span.setTag('error', error);
-    throw error;
   }
 
   /**
@@ -185,6 +184,7 @@ export class DecoratorInjector implements Injector {
               .apply(this, args)
               .catch((error) => {
                 DecoratorInjector.recordException(error, span);
+                throw error;
               })
               .finally(() => span.finish());
           } else {
@@ -195,6 +195,7 @@ export class DecoratorInjector implements Injector {
                 return result
                   .catch((error) => {
                     DecoratorInjector.recordException(error, span);
+                    throw error;
                   })
                   .finally(() => span.finish());
               }
@@ -204,6 +205,7 @@ export class DecoratorInjector implements Injector {
             } catch (error) {
               DecoratorInjector.recordException(error, span);
               span.finish();
+              throw error;
             }
           }
         });
