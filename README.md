@@ -6,6 +6,14 @@
 npm i nestjs-ddtrace --save
 ```
 
+### Compatibility
+
+- NestJS: `^11.0.0 || ^12.0.0`
+- Node.js: `^20.19.0 || >=22.12.0`
+
+NestJS 12 is published as ESM only, while this library is published as CommonJS. It loads NestJS through Node.js'
+built-in `require(esm)` support, which is enabled by default starting with Node.js 20.19.0 and 22.12.0.
+
 ## Setup
 
 1. Create tracing file (tracing.ts):
