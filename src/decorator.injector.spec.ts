@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Controller, Get, Injectable, UsePipes } from '@nestjs/common';
+import { Controller, Get, Injectable, Type, UsePipes } from '@nestjs/common';
 import { EventPattern, Transport } from '@nestjs/microservices';
 import { DatadogTraceModule } from './datadog-trace.module';
 import { Span } from './span.decorator';
@@ -14,6 +14,7 @@ import {
 } from '@nestjs/microservices/constants';
 import { PatternHandler } from '@nestjs/microservices/enums/pattern-handler.enum';
 import { NoSpan } from './no-span.decorator';
+import { okAsync } from 'neverthrow';
 
 describe('DecoratorInjector', () => {
   it('should work with sync function', async () => {
@@ -1291,5 +1292,70 @@ describe('DecoratorInjector', () => {
 
     startSpanSpy.mockClear();
     scopeSpy.mockClear();
+  });
+
+  describe('return values', () => {
+    const instrument = async <T>(provider: Type<T>) => {
+      const module = await Test.createTestingModule({
+        imports: [DatadogTraceModule.forRoot()],
+        providers: [provider],
+      }).compile();
+      const span = { finish: jest.fn(), setTag: jest.fn() } as any as TraceSpan;
+      jest.spyOn(tracer, 'startSpan').mockReturnValue(span);
+      jest.spyOn(tracer, 'scope').mockImplementation(
+        () =>
+          ({
+            activate: (_span: TraceSpan, fn: () => any) => fn(),
+            active: () => null,
+          }) as any as Scope,
+      );
+      return { service: module.get(provider), span };
+    };
+
+    afterEach(() => jest.restoreAllMocks());
+
+    it('should return a ResultAsync as the same instance and finish when it settles', async () => {
+      const value = okAsync(1);
+      @Injectable()
+      class HelloService {
+        @Span('hello')
+        hi() {
+          return value;
+        }
+      }
+      const { service, span } = await instrument(HelloService);
+
+      const result = service.hi();
+
+      expect(result).toBe(value);
+      expect(span.finish).not.toHaveBeenCalled();
+      await expect(
+        result.match(
+          (v) => v,
+          () => 0,
+        ),
+      ).resolves.toBe(1);
+      expect(span.finish).toHaveBeenCalled();
+    });
+
+    it('should return other thenables untouched without executing them', async () => {
+      const query = { then: jest.fn(), catch: jest.fn(), finally: jest.fn() };
+      @Injectable()
+      class HelloService {
+        @Span('hello')
+        hi() {
+          return query;
+        }
+      }
+      const { service, span } = await instrument(HelloService);
+
+      const result = service.hi();
+
+      expect(result).toBe(query);
+      expect(query.then).not.toHaveBeenCalled();
+      expect(query.catch).not.toHaveBeenCalled();
+      expect(query.finally).not.toHaveBeenCalled();
+      expect(span.finish).toHaveBeenCalled();
+    });
   });
 });
