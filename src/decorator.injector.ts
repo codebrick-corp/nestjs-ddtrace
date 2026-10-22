@@ -10,6 +10,11 @@ import tracer, { Span } from 'dd-trace';
 import { Injector } from './injector.interface';
 import { InjectorOptions } from 'src/injector-options.interface';
 
+const isResultAsync = (value: any): value is PromiseLike<unknown> =>
+  typeof value?.then === 'function' &&
+  typeof value.match === 'function' &&
+  typeof value.andThen === 'function';
+
 @Injectable()
 export class DecoratorInjector implements Injector {
   private readonly metadataScanner: MetadataScanner = new MetadataScanner();
@@ -69,7 +74,6 @@ export class DecoratorInjector implements Injector {
    */
   private static recordException(error, span: Span) {
     span.setTag('error', error);
-    throw error;
   }
 
   /**
@@ -179,33 +183,42 @@ export class DecoratorInjector implements Injector {
         const activeSpan = tracer.scope().active();
         const span = tracer.startSpan(spanName, { childOf: activeSpan });
 
-        return tracer.scope().activate(span, () => {
-          if (prototype.constructor.name === 'AsyncFunction') {
-            return prototype
-              .apply(this, args)
-              .catch((error) => {
-                DecoratorInjector.recordException(error, span);
-              })
-              .finally(() => span.finish());
-          } else {
-            try {
-              const result = prototype.apply(this, args);
-              // This handles the case where a function isn't async but returns a Promise
-              if (result && typeof result.then === 'function') {
-                return result
-                  .catch((error) => {
-                    DecoratorInjector.recordException(error, span);
-                  })
-                  .finally(() => span.finish());
-              }
+        const fail = (error: unknown) => {
+          DecoratorInjector.recordException(error, span);
+          span.finish();
+        };
 
-              span.finish();
-              return result;
-            } catch (error) {
-              DecoratorInjector.recordException(error, span);
-              span.finish();
-            }
+        return tracer.scope().activate(span, () => {
+          let result;
+          try {
+            result = prototype.apply(this, args);
+          } catch (error) {
+            fail(error);
+            throw error;
           }
+
+          if (result instanceof Promise) {
+            return result.then(
+              (value) => {
+                span.finish();
+                return value;
+              },
+              (error) => {
+                fail(error);
+                throw error;
+              },
+            );
+          }
+
+          // A ResultAsync is not a Promise: callers need the instance itself to keep its API.
+          if (isResultAsync(result)) {
+            result.then(() => span.finish(), fail);
+            return result;
+          }
+
+          // Other thenables can be lazy (e.g. query builders): calling `then` here would execute them.
+          span.finish();
+          return result;
         });
       },
     }[prototype.name];
